@@ -114,6 +114,7 @@
     flex-direction: column;
     gap: 12px;
     padding: 20px;
+    white-space: nowrap;
 }
 
 .dropdown {
