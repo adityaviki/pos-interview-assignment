@@ -223,7 +223,7 @@ export default function Home() {
                         ))}
                         <div className={styles.candidatesListDescription}>
                             Requirements are based on your skills, requirements
-                            and candidate's performance
+                            and candidate&apos;s performance
                         </div>
                     </div>
                     <div className={styles.candiatesListSeparator}></div>
