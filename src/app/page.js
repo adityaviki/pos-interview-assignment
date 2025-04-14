@@ -4,8 +4,9 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import { useEffect, useState } from "react";
 
-const CandidateHeatMap = ({ candidate, skills }) => {
+const CandidateHeatMap = ({ candidate, skills, filterValues }) => {
     const [candidateSkills, setCandidateSkills] = useState([]);
+    const [filterCandidate, setFilterCandidate] = useState(false);
     const heatMapColors = {
         0: "#ECFFF1",
         1: "#F8F8A7",
@@ -22,55 +23,104 @@ const CandidateHeatMap = ({ candidate, skills }) => {
                     (category) =>
                         category.skills.map((skill) => ({
                             skill: skill.name,
-                            consensus_score: skill.pos[0]?.consensus_score,
+                            consensus_score: skill.pos[0]?.consensus_score ?? 0,
                         }))
                 );
+
+                const failsRequiredSkill = Object.entries(filterValues).some(
+                    ([skillName, threshold]) => {
+                        if (threshold === false) return false; // Not filtering this skill
+                        const candidateSkill = candidateSkills.find(
+                            (s) => s.skill === skillName
+                        );
+                        return (
+                            !candidateSkill ||
+                            candidateSkill.consensus_score < threshold
+                        );
+                    }
+                );
+
+                setFilterCandidate(failsRequiredSkill);
                 setCandidateSkills(candidateSkills);
-                console.log("Candidate Skills:", candidateSkills);
             })
             .catch((error) => {
                 console.error("Error fetching candidate skills:", error);
             });
-    }, [candidate]);
+    }, [candidate, filterValues]);
+
+    if (filterCandidate) return null;
 
     return (
         <div className={styles.heatMapColumn}>
-            {skills.map((skill) => (
-                <div
-                    key={skill}
-                    className={styles.heatMapSkill}
-                    style={{
-                        backgroundColor:
-                            heatMapColors[
-                                candidateSkills.find((s) => s.skill === skill)
-                                    ?.consensus_score
-                            ] || "#ECFFF1",
-                    }}
-                ></div>
-            ))}
+            <div className={styles.initial}>
+                {`${candidate.name.split(" ")[0][0]}.${
+                    candidate.name.split(" ")[1][0]
+                }`}
+            </div>
+            {skills.map((skill) => {
+                return (
+                    <div
+                        key={skill}
+                        className={styles.heatMapSkill}
+                        style={{
+                            backgroundColor:
+                                heatMapColors[
+                                    candidateSkills.find(
+                                        (s) => s.skill === skill
+                                    )?.consensus_score
+                                ] || "#ECFFF1",
+                        }}
+                    ></div>
+                );
+            })}
         </div>
     );
 };
 
 export default function Home() {
     const [candidates, setCandidates] = useState([]);
+    const [filteredCandidates, setFilteredCandidates] = useState([]);
     const [selectedCandidates, setSelectedCandidates] = useState([]);
     const [dropdownVisible, setDropdownVisible] = useState(false);
-
+    const [skillValue, setSkillValue] = useState(null);
     const skills = [
         "Creating Wireframes",
         "Creating Basic Prototypes",
         "Creation of Brands",
         "Applying Color Theory",
         "Using Figma for Design",
-        "Application fo Typography",
-        "Creating Effective icons",
+        "Application of Typography",
+        "Creating Effective Icons",
         "Optimizing Touch Points",
+        "Addressing User Pain Points",
+        "Conducting User Research",
+        "Applying Questioning Skills",
+        "Conducting Heuristic Evaluation",
+        "Gathering User Feedback",
+        "Conducting Usability Tests",
+        "Creating User Personas",
+        "Conducting Market Research",
+        "Crafting Effective Questions",
+        "Creating Effective Surveys",
+        "Creating Sitemaps",
+        "Designing User Flows",
     ];
 
-    const [filteredSkills, setFilteredSkills] = useState(skills);
+    const [filterValues, setFilterValues] = useState(
+        skills.reduce((acc, skill) => {
+            acc[skill] = false;
+            return acc;
+        }, {})
+    );
 
-    //write handleCandidateClick function. if candidate is already selected, remove it from selectedCandidates, else add it to selectedCandidates
+    const updateFilterValues = (skill, value) => {
+        setFilterValues((prev) => ({
+            ...prev,
+            [skill]: value,
+        }));
+    };
+
+    const [filteredSkills, setFilteredSkills] = useState(skills);
 
     const handleCandidateClick = (candidate) => {
         const isSelected = selectedCandidates.some(
@@ -126,8 +176,60 @@ export default function Home() {
                     <div className={styles.candiatesListTitle}>
                         Most Recommended
                     </div>
+                    <div className={styles.mostRecommendedCandidates}>
+                        {candidates.slice(0, 3).map((candidate) => (
+                            <div
+                                key={candidate.id}
+                                className={styles.mostRecommendedcandidateCard}
+                            >
+                                <div className={styles.candidateNameAndImage}>
+                                    <div className={styles.candidateImage}>
+                                        <Image
+                                            src={"/avatar.png"}
+                                            alt="Candidate Avatar"
+                                            width={24}
+                                            height={24}
+                                        />
+                                    </div>
+                                    <div className={styles.candidateName}>
+                                        {candidate?.name || ""}
+                                    </div>
+                                </div>
+                                <div
+                                    onClick={() =>
+                                        handleCandidateClick(candidate)
+                                    }
+                                    className={styles.selectButton}
+                                >
+                                    {selectedCandidates.some(
+                                        (c) => c.id === candidate.id
+                                    ) ? (
+                                        <Image
+                                            src={"/minus-icon.png"}
+                                            alt="Selected Candidate"
+                                            width={24}
+                                            height={24}
+                                        />
+                                    ) : (
+                                        <Image
+                                            src={"/plus-icon.png"}
+                                            alt="Select Candidate"
+                                            width={24}
+                                            height={24}
+                                        />
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        <div className={styles.candidatesListDescription}>
+                            Requirements are based on your skills, requirements
+                            and candidate's performance
+                        </div>
+                    </div>
+                    <div className={styles.candiatesListSeparator}></div>
+
                     <div className={styles.candidatesList}>
-                        {candidates.map((candidate) => (
+                        {candidates.slice(3).map((candidate) => (
                             <div
                                 key={candidate.id}
                                 className={styles.candidateCard}
@@ -184,19 +286,108 @@ export default function Home() {
                         {dropdownVisible && (
                             <div className={styles.dropdown}>
                                 {skills.map((skill, index) => (
-                                    <label
-                                        key={index}
-                                        className={styles.dropdownItem}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={filteredSkills.includes(
-                                                skill
-                                            )}
-                                            onChange={() => toggleSkill(skill)}
-                                        />
-                                        {skill}
-                                    </label>
+                                    <div key={index}>
+                                        <label className={styles.dropdownItem}>
+                                            <div>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={filteredSkills.includes(
+                                                        skill
+                                                    )}
+                                                    onChange={() =>
+                                                        toggleSkill(skill)
+                                                    }
+                                                />
+                                                {skill}
+                                            </div>
+                                            <button
+                                                onClick={() =>
+                                                    setSkillValue((prev) =>
+                                                        prev === skill
+                                                            ? false
+                                                            : skill
+                                                    )
+                                                }
+                                                className={styles.skillValue}
+                                            >
+                                                {filterValues[skill] ||
+                                                    "Select Value"}
+                                            </button>
+                                        </label>
+                                        {skillValue === skill && (
+                                            <div
+                                                className={
+                                                    styles.skillValueDropdown
+                                                }
+                                            >
+                                                <div
+                                                    onClick={() =>
+                                                        updateFilterValues(
+                                                            skill,
+                                                            false
+                                                        )
+                                                    }
+                                                    className={
+                                                        styles.skillValueDropdownItem
+                                                    }
+                                                >
+                                                    0
+                                                </div>
+                                                <div
+                                                    onClick={() =>
+                                                        updateFilterValues(
+                                                            skill,
+                                                            1
+                                                        )
+                                                    }
+                                                    className={
+                                                        styles.skillValueDropdownItem
+                                                    }
+                                                >
+                                                    1
+                                                </div>
+                                                <div
+                                                    onClick={() =>
+                                                        updateFilterValues(
+                                                            skill,
+                                                            2
+                                                        )
+                                                    }
+                                                    className={
+                                                        styles.skillValueDropdownItem
+                                                    }
+                                                >
+                                                    2
+                                                </div>
+                                                <div
+                                                    onClick={() =>
+                                                        updateFilterValues(
+                                                            skill,
+                                                            3
+                                                        )
+                                                    }
+                                                    className={
+                                                        styles.skillValueDropdownItem
+                                                    }
+                                                >
+                                                    3
+                                                </div>
+                                                <div
+                                                    onClick={() =>
+                                                        updateFilterValues(
+                                                            skill,
+                                                            4
+                                                        )
+                                                    }
+                                                    className={
+                                                        styles.skillValueDropdownItem
+                                                    }
+                                                >
+                                                    4
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 ))}
                             </div>
                         )}
@@ -219,6 +410,7 @@ export default function Home() {
                                 candidate={candidate}
                                 skills={filteredSkills}
                                 key={candidate.id}
+                                filterValues={filterValues}
                             />
                         ))}
                     </div>
